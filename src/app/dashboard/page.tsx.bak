@@ -1,0 +1,360 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import { createClient } from '@/lib/supabase'
+
+type Summary = {
+  promo_id: string
+  numero: string
+  marque: string
+  cible_promo: string[]
+  date_debut: string
+  date_fin: string
+  nb_conforme: number
+  nb_prix_non_conforme: number
+  nb_hors_cible: number
+  ca_conforme: number
+  ca_prix_non_conforme: number
+  ca_hors_cible: number
+}
+
+type DetailRow = {
+  promo_id: string
+  numero: string
+  ref: string
+  prix_attendu: number
+  client_id: string
+  client_nom: string | null
+  cible_client: string | null
+  date_vente: string
+  quantite: number
+  montant_ca: number
+  prix_reel: number | null
+  statut: 'conforme' | 'prix_non_conforme' | 'hors_cible'
+}
+
+type StatutFiltre = 'tous' | 'conforme' | 'prix_non_conforme' | 'hors_cible'
+
+const STATUT_LABEL: Record<Exclude<StatutFiltre, 'tous'>, string> = {
+  conforme: 'Conforme',
+  prix_non_conforme: 'Hors prix',
+  hors_cible: 'Hors cible',
+}
+
+function formatMAD(n: number) {
+  return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' MAD'
+}
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+export default function DashboardPage() {
+  const [summaries, setSummaries] = useState<Summary[]>([])
+  const [loading, setLoading] = useState(true)
+  const [erreur, setErreur] = useState('')
+  const [recherche, setRecherche] = useState('')
+
+  const [ouvert, setOuvert] = useState<string | null>(null)
+  const [details, setDetails] = useState<Record<string, DetailRow[]>>({})
+  const [chargementDetail, setChargementDetail] = useState<string | null>(null)
+  const [filtreStatut, setFiltreStatut] = useState<Record<string, StatutFiltre>>({})
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('promo_matching_summary')
+      .select('*')
+      .then(({ data, error }) => {
+        if (error) setErreur(error.message)
+        else setSummaries((data as Summary[]) || [])
+        setLoading(false)
+      })
+  }, [])
+
+  const filtrees = useMemo(() => {
+    const q = recherche.trim().toLowerCase()
+    if (!q) return summaries
+    return summaries.filter(
+      (s) => s.numero.toLowerCase().includes(q) || s.marque.toLowerCase().includes(q)
+    )
+  }, [summaries, recherche])
+
+  const toggleCarte = async (promoId: string) => {
+    if (ouvert === promoId) {
+      setOuvert(null)
+      return
+    }
+    setOuvert(promoId)
+    if (!details[promoId]) {
+      setChargementDetail(promoId)
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('promo_matching_detail')
+        .select('*')
+        .eq('promo_id', promoId)
+        .order('date_vente', { ascending: false })
+      if (!error) setDetails((prev) => ({ ...prev, [promoId]: (data as DetailRow[]) || [] }))
+      setChargementDetail(null)
+    }
+  }
+
+  return (
+    <div className="min-h-screen" style={{ background: '#F5F6F8' }}>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      />
+      <style>{`
+        .diop-display { font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif; }
+        .diop-body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+        .diop-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; font-variant-numeric: tabular-nums; }
+      `}</style>
+
+      {/* Bandeau */}
+      <header style={{ background: '#0B1220' }} className="px-6 py-6 sm:px-10">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="diop-mono text-[11px] uppercase tracking-[0.25em] text-white/40">
+              DIOP · Reporting
+            </p>
+            <h1 className="diop-display mt-1 text-2xl font-semibold text-white">
+              Conformite des promotions
+            </h1>
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+              placeholder="Rechercher un numero (26/...) ou une marque"
+              className="diop-mono w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus-visible:ring-2 focus-visible:ring-[#0067B8] sm:w-80"
+            />
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-6 py-8 sm:px-10">
+        {loading && (
+          <p className="diop-body text-sm text-gray-400">Chargement des promotions...</p>
+        )}
+
+        {erreur && (
+          <p className="diop-body rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+            Erreur : {erreur}
+          </p>
+        )}
+
+        {!loading && !erreur && filtrees.length === 0 && (
+          <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-14 text-center">
+            <p className="diop-body text-sm text-gray-400">
+              Aucune promotion ne correspond a cette recherche.
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-4">
+          {filtrees.map((s) => {
+            const total = s.nb_conforme + s.nb_prix_non_conforme + s.nb_hors_cible
+            const caTotal = s.ca_conforme + s.ca_prix_non_conforme + s.ca_hors_cible
+            const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0)
+            const estOuvert = ouvert === s.promo_id
+            const rows = details[s.promo_id] || []
+            const filtre = filtreStatut[s.promo_id] || 'tous'
+            const rowsFiltrees = filtre === 'tous' ? rows : rows.filter((r) => r.statut === filtre)
+
+            return (
+              <div
+                key={s.promo_id}
+                className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+              >
+                <button
+                  onClick={() => toggleCarte(s.promo_id)}
+                  className="flex w-full flex-col gap-4 px-6 py-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#0067B8] focus-visible:ring-inset sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex items-center gap-4">
+                    <span
+                      className="diop-mono rounded-md px-2.5 py-1 text-sm font-semibold text-white"
+                      style={{ background: '#0057A8' }}
+                    >
+                      {s.numero}
+                    </span>
+                    <div>
+                      <p className="diop-display text-base font-semibold text-gray-900">
+                        {s.marque}
+                      </p>
+                      <p className="diop-body text-xs text-gray-400">
+                        {formatDate(s.date_debut)} → {formatDate(s.date_fin)} · cible{' '}
+                        {s.cible_promo?.join(', ') || '-'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <p className="diop-mono text-sm font-medium text-gray-700">
+                      {formatMAD(caTotal)}
+                    </p>
+                    <svg
+                      className={`h-4 w-4 text-gray-400 transition-transform motion-reduce:transition-none ${estOuvert ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+
+                {/* Bande de conformite */}
+                <div className="px-6 pb-5">
+                  {total === 0 ? (
+                    <p className="diop-body text-xs text-gray-400">
+                      Aucune vente enregistree sur cette periode pour ces SKUs.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-gray-100">
+                        {s.nb_conforme > 0 && (
+                          <div style={{ width: pct(s.nb_conforme) + '%', background: '#15803D' }} />
+                        )}
+                        {s.nb_prix_non_conforme > 0 && (
+                          <div style={{ width: pct(s.nb_prix_non_conforme) + '%', background: '#B91C1C' }} />
+                        )}
+                        {s.nb_hors_cible > 0 && (
+                          <div style={{ width: pct(s.nb_hors_cible) + '%', background: '#B45309' }} />
+                        )}
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+                        <button
+                          onClick={() => {
+                            toggleCarte(s.promo_id)
+                            setFiltreStatut((p) => ({ ...p, [s.promo_id]: 'conforme' }))
+                            setOuvert(s.promo_id)
+                          }}
+                          className="diop-body flex items-center gap-1.5 text-xs text-gray-600 outline-none hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-[#0067B8]"
+                        >
+                          <span className="h-2 w-2 rounded-full" style={{ background: '#15803D' }} />
+                          {s.nb_conforme} conforme{s.nb_conforme > 1 ? 's' : ''}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setFiltreStatut((p) => ({ ...p, [s.promo_id]: 'prix_non_conforme' }))
+                            setOuvert(s.promo_id)
+                            if (!details[s.promo_id]) toggleCarte(s.promo_id)
+                          }}
+                          className="diop-body flex items-center gap-1.5 text-xs text-gray-600 outline-none hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-[#0067B8]"
+                        >
+                          <span className="h-2 w-2 rounded-full" style={{ background: '#B91C1C' }} />
+                          {s.nb_prix_non_conforme} hors prix promo
+                        </button>
+                        <button
+                          onClick={() => {
+                            setFiltreStatut((p) => ({ ...p, [s.promo_id]: 'hors_cible' }))
+                            setOuvert(s.promo_id)
+                            if (!details[s.promo_id]) toggleCarte(s.promo_id)
+                          }}
+                          className="diop-body flex items-center gap-1.5 text-xs text-gray-600 outline-none hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-[#0067B8]"
+                        >
+                          <span className="h-2 w-2 rounded-full" style={{ background: '#B45309' }} />
+                          {s.nb_hors_cible} hors cible
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Drill-down */}
+                {estOuvert && (
+                  <div className="border-t border-gray-100 bg-gray-50/60 px-6 py-5">
+                    {chargementDetail === s.promo_id && (
+                      <p className="diop-body text-xs text-gray-400">Chargement du detail...</p>
+                    )}
+
+                    {chargementDetail !== s.promo_id && (
+                      <>
+                        <div className="mb-3 flex flex-wrap items-center gap-2">
+                          {(['tous', 'conforme', 'prix_non_conforme', 'hors_cible'] as StatutFiltre[]).map(
+                            (f) => (
+                              <button
+                                key={f}
+                                onClick={() => setFiltreStatut((p) => ({ ...p, [s.promo_id]: f }))}
+                                className={`diop-body rounded-full px-3 py-1 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-[#0067B8] ${
+                                  filtre === f
+                                    ? 'bg-gray-900 text-white'
+                                    : 'bg-white text-gray-500 border border-gray-200'
+                                }`}
+                              >
+                                {f === 'tous' ? 'Tout' : STATUT_LABEL[f]}
+                              </button>
+                            )
+                          )}
+                        </div>
+
+                        <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white">
+                          <table className="w-full text-left text-xs">
+                            <thead className="diop-body bg-gray-50 uppercase text-gray-400">
+                              <tr>
+                                <th className="px-3 py-2.5">SKU</th>
+                                <th className="px-3 py-2.5">Client</th>
+                                <th className="px-3 py-2.5">Cible</th>
+                                <th className="px-3 py-2.5">Date</th>
+                                <th className="diop-mono px-3 py-2.5 text-right">Prix attendu</th>
+                                <th className="diop-mono px-3 py-2.5 text-right">Prix reel</th>
+                                <th className="diop-mono px-3 py-2.5 text-right">Montant</th>
+                                <th className="px-3 py-2.5">Statut</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rowsFiltrees.slice(0, 100).map((r, i) => (
+                                <tr key={i} className="diop-body border-t border-gray-100 text-gray-700">
+                                  <td className="diop-mono px-3 py-2">{r.ref}</td>
+                                  <td className="px-3 py-2">{r.client_id}</td>
+                                  <td className="px-3 py-2">{r.cible_client ?? '-'}</td>
+                                  <td className="diop-mono px-3 py-2">{formatDate(r.date_vente)}</td>
+                                  <td className="diop-mono px-3 py-2 text-right">{r.prix_attendu}</td>
+                                  <td className="diop-mono px-3 py-2 text-right">{r.prix_reel ?? '-'}</td>
+                                  <td className="diop-mono px-3 py-2 text-right">
+                                    {r.montant_ca.toLocaleString('fr-FR')}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <span
+                                      className="rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
+                                      style={{
+                                        background:
+                                          r.statut === 'conforme'
+                                            ? '#15803D'
+                                            : r.statut === 'prix_non_conforme'
+                                            ? '#B91C1C'
+                                            : '#B45309',
+                                      }}
+                                    >
+                                      {STATUT_LABEL[r.statut]}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {rowsFiltrees.length === 0 && (
+                            <p className="diop-body px-3 py-4 text-center text-xs text-gray-400">
+                              Aucune ligne pour ce filtre.
+                            </p>
+                          )}
+                          {rowsFiltrees.length > 100 && (
+                            <p className="diop-body border-t border-gray-100 px-3 py-2 text-xs text-gray-400">
+                              + {rowsFiltrees.length - 100} autres lignes (affichage limite a 100)
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </main>
+    </div>
+  )
+}

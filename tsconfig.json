@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "src/app/ventes/upload/page.tsx.bak", "src/app/dashboard/page.tsx.bak", "src/app/dashboard/[...numero]/page.tsx.bak", "src/app/dashboard/[...numero]/page2.tsx.bak", "src/app/dashboard/page1.tsx.bak"  ],
   "exclude": ["node_modules"]
 }
