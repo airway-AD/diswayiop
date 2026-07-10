@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-type Role = 'admin' | 'marcom' | 'infographiste'
+type Role = 'admin' | 'marcom' | 'infographiste' | 'cdp';
 
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null
