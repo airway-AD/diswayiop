@@ -5,6 +5,23 @@ import { createClient } from '@/lib/supabase'
 
 const CIBLES = ['SMB', 'GC', 'SD', 'Retail']
 
+const CDPS = [
+  'Anas Benjelloun',
+  'Asmaa Cherkaoui',
+  'Fatima Menkari',
+  'Ghizlaine Gharbi',
+  'Hicham Benchakroun',
+  'Jaouad Zerrour',
+  'Mohamed Benjelloun',
+  'Mohamed Bennani',
+  'Reda Mohamed Hcine',
+  'Sanaa Rizki',
+  'Sara Moufakkir',
+  'Soraya Bennani',
+  'Younes Alaoui Belrhiti',
+  'Zouhair Laamiri',
+]
+
 const TYPES_PROMO = [
   'Destockage',
   'Nouvel arrivage',
@@ -59,6 +76,7 @@ function formatDate(d: string) {
 
 export default function NouvellePromoPage() {
   const [numero, setNumero] = useState('')
+  const [cdp, setCdp] = useState('')
   const [marque, setMarque] = useState('')
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
@@ -130,6 +148,7 @@ export default function NouvellePromoPage() {
     'Bonjour,\n\n' +
     'Merci de preparer la promo numero : ' + numero + '\n\n' +
     'Details de la campagne :\n' +
+    '- CDP : ' + cdp + '\n' +
     '- Marque : ' + marque + '\n' +
     '- Duree : du ' + formatDate(dateDebut) + ' au ' + formatDate(dateFin) + '\n' +
     '- Type de promo : ' + (typePromo || 'Non precise') + '\n' +
@@ -165,6 +184,7 @@ export default function NouvellePromoPage() {
       .from('promos')
       .insert({
         numero,
+        cdp,
         marque,
         skus: skuRows.map((r) => r.ref),
         date_debut: dateDebut || null,
@@ -289,6 +309,23 @@ export default function NouvellePromoPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className={labelClass}>Nom du CDP</label>
+            <select
+              className={inputClass}
+              value={cdp}
+              onChange={(e) => setCdp(e.target.value)}
+              required
+            >
+              <option value="">Choisir un CDP</option>
+              {CDPS.map((nom) => (
+                <option key={nom} value={nom}>
+                  {nom}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className={labelClass}>Marque</label>
             <input

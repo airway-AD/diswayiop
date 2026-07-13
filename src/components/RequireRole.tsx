@@ -39,6 +39,9 @@ function AdminNav({ onLogout }: { onLogout: () => void }) {
 
   return (
     <nav className="sticky top-0 z-40 flex flex-wrap items-center gap-1 border-b border-gray-200 bg-white px-4 py-2">
+      <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 text-[9px] font-medium text-gray-300">
+        logo
+      </div>
       <Link href="/dashboard" className={lienClass}>
         Dashboard
       </Link>

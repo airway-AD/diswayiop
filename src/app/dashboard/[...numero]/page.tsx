@@ -8,10 +8,16 @@ type Meta = {
   promo_id: string
   numero: string
   marque: string
+  categorie: string | null
   cible: string[]
   date_debut: string
   date_fin: string
-  sous_familles: string[] | null
+}
+
+type Equipe = {
+  cdp: string | null
+  assigne_a_nom: string | null
+  envoi_nl: string | null
 }
 
 type ImpactSku = {
@@ -28,6 +34,12 @@ type ImpactFamille = {
   ca_pendant_famille: number
   clients_baseline_famille: number
   clients_pendant_famille: number
+}
+
+type ImpactCible = {
+  cible: string
+  ca_pendant: number
+  clients_pendant: number
 }
 
 type SemaineRow = {
@@ -48,10 +60,6 @@ type SkuTableRow = {
   qte_pendant: number
   clients_pendant: number
   nb_hors_prix: number
-  ca_baseline_famille: number
-  ca_pendant_famille: number
-  clients_baseline_famille: number
-  clients_pendant_famille: number
 }
 
 type DetailRow = {
@@ -82,6 +90,9 @@ function formatCompact(n: number) {
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
+function formatDateHeure(d: string) {
+  return new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
 function pctUplift(avant: number, pendant: number): number | null {
   if (avant > 0) return ((pendant - avant) / avant) * 100
   if (pendant > 0) return null
@@ -111,34 +122,15 @@ function UpliftBadge({ avant, pendant }: { avant: number; pendant: number }) {
     </span>
   )
 }
+function weekLabel(offset: number) {
+  return offset < 0 ? `W${offset}` : `PW${offset + 1}`
+}
 
-// --- Icones inline (simples, generiques) ---
 const IconCoins = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
     <ellipse cx="12" cy="6" rx="7" ry="3" />
     <path d="M5 6v5c0 1.66 3.13 3 7 3s7-1.34 7-3V6" />
     <path d="M5 11v5c0 1.66 3.13 3 7 3s7-1.34 7-3v-5" />
-  </svg>
-)
-const IconUsers = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-    <circle cx="9" cy="8" r="3.2" />
-    <path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" />
-    <circle cx="17" cy="9" r="2.6" />
-    <path d="M15.5 14.2c2.8.4 4.5 2.4 4.5 5.8" />
-  </svg>
-)
-const IconTrending = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-    <path d="M3 17l6-6 4 4 7-8" />
-    <path d="M14 6h6v6" />
-  </svg>
-)
-const IconBox = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-    <path d="M3 8l9-5 9 5-9 5-9-5z" />
-    <path d="M3 8v9l9 5 9-5V8" />
-    <path d="M12 13v9" />
   </svg>
 )
 const IconMail = () => (
@@ -170,39 +162,32 @@ const IconChevron = ({ open }: { open: boolean }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
   </svg>
 )
-
-// --- Carte KPI coloree ---
-function KpiCard({
-  label,
-  value,
-  accent,
-  icon,
-  sub,
-}: {
-  label: string
-  value: React.ReactNode
-  accent: string
-  icon: React.ReactNode
-  sub?: string
-}) {
-  return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-2.5">
-        <span
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-          style={{ background: accent + '1A', color: accent }}
-        >
-          <span className="h-4 w-4">{icon}</span>
-        </span>
-        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{label}</p>
-      </div>
-      <div className="mt-3 text-lg font-semibold text-gray-900" style={{ fontVariantNumeric: 'tabular-nums' }}>
-        {value}
-      </div>
-      {sub && <p className="mt-0.5 text-[11px] text-gray-400">{sub}</p>}
-    </div>
-  )
-}
+const IconCopy = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <path d="M5 15V5a2 2 0 012-2h10" />
+  </svg>
+)
+const IconUser = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <circle cx="12" cy="8" r="3.5" />
+    <path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+  </svg>
+)
+const IconPalette = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="8.5" cy="10.5" r="1.2" fill="currentColor" />
+    <circle cx="12" cy="8" r="1.2" fill="currentColor" />
+    <circle cx="15.5" cy="10.5" r="1.2" fill="currentColor" />
+  </svg>
+)
+const IconSend = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <path d="M22 2L11 13" />
+    <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+  </svg>
+)
 
 const NAV_ITEMS: { id: Categorie; label: string; icon: React.ReactNode; accent: string; disabled?: boolean }[] = [
   { id: 'ventes', label: 'Ventes', icon: <IconCoins />, accent: '#0057A8' },
@@ -211,25 +196,37 @@ const NAV_ITEMS: { id: Categorie; label: string; icon: React.ReactNode; accent: 
   { id: 'stock', label: 'Stock', icon: <IconArchive />, accent: '#64748B', disabled: true },
 ]
 
+const CIBLE_COLORS: Record<string, string> = {
+  SMB: '#0057A8',
+  GC: '#15803D',
+  SD: '#7C3AED',
+  Retail: '#EA580C',
+  GD: '#0891B2',
+  GR: '#B45309',
+}
+
 export default function PromoDetailPage({ params }: { params: Promise<{ numero: string[] }> }) {
   const { numero: numeroSegments } = use(params)
   const numero = numeroSegments.join('/')
 
   const [meta, setMeta] = useState<Meta | null>(null)
+  const [equipe, setEquipe] = useState<Equipe | null>(null)
   const [impactSku, setImpactSku] = useState<ImpactSku | null>(null)
   const [impactFamille, setImpactFamille] = useState<ImpactFamille | null>(null)
+  const [impactCible, setImpactCible] = useState<ImpactCible[]>([])
   const [semaineSku, setSemaineSku] = useState<SemaineRow[]>([])
-  const [semaineFamille, setSemaineFamille] = useState<SemaineRow[]>([])
   const [skuTable, setSkuTable] = useState<SkuTableRow[]>([])
   const [horsPrix, setHorsPrix] = useState<DetailRow[]>([])
+  const [derniereMaj, setDerniereMaj] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [erreur, setErreur] = useState('')
 
   const [categorie, setCategorie] = useState<Categorie>('ventes')
-  const [metrique, setMetrique] = useState<'ca' | 'clients'>('ca')
-  const [showContribution, setShowContribution] = useState(false)
   const [refFiltre, setRefFiltre] = useState<string | null>(null)
   const [horsPrixOuvert, setHorsPrixOuvert] = useState(false)
+  const [cibleSurvolee, setCibleSurvolee] = useState<string | null>(null)
+  const [lienCopie, setLienCopie] = useState(false)
+  const [survolSemaine, setSurvolSemaine] = useState<number | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -249,11 +246,12 @@ export default function PromoDetailPage({ params }: { params: Promise<{ numero: 
       setMeta(metaData as Meta)
       const promoId = (metaData as Meta).promo_id
 
-      const [impSku, impFam, semSku, semFam, table, hp] = await Promise.all([
+      const [eq, impSku, impFam, impCib, semSku, table, hp, maj] = await Promise.all([
+        supabase.from('promos').select('cdp, assigne_a_nom, envoi_nl').eq('id', promoId).maybeSingle(),
         supabase.from('promo_impact_sku').select('*').eq('numero', numero).maybeSingle(),
         supabase.from('promo_impact_famille').select('*').eq('numero', numero).maybeSingle(),
+        supabase.from('promo_impact_cible').select('*').eq('numero', numero),
         supabase.from('promo_semaine_sku').select('*').eq('numero', numero),
-        supabase.from('promo_semaine_famille').select('*').eq('numero', numero),
         supabase.from('promo_sku_table').select('*').eq('numero', numero),
         supabase
           .from('promo_matching_detail')
@@ -261,14 +259,17 @@ export default function PromoDetailPage({ params }: { params: Promise<{ numero: 
           .eq('promo_id', promoId)
           .eq('statut', 'prix_non_conforme')
           .order('date_vente', { ascending: false }),
+        supabase.from('ventes_nav').select('uploaded_at').order('uploaded_at', { ascending: false }).limit(1).maybeSingle(),
       ])
 
+      if (eq.data) setEquipe(eq.data as Equipe)
       if (impSku.data) setImpactSku(impSku.data as ImpactSku)
       if (impFam.data) setImpactFamille(impFam.data as ImpactFamille)
+      if (impCib.data) setImpactCible(impCib.data as ImpactCible[])
       if (semSku.data) setSemaineSku(semSku.data as SemaineRow[])
-      if (semFam.data) setSemaineFamille(semFam.data as SemaineRow[])
       if (table.data) setSkuTable(table.data as SkuTableRow[])
       if (hp.data) setHorsPrix(hp.data as DetailRow[])
+      if (maj.data) setDerniereMaj((maj.data as { uploaded_at: string }).uploaded_at)
 
       setLoading(false)
     }
@@ -288,40 +289,18 @@ export default function PromoDetailPage({ params }: { params: Promise<{ numero: 
         skuMap.set(r.semaine_offset, { ...r })
       }
     }
-    const famMap = new Map<number, SemaineRow>()
-    for (const r of semaineFamille) famMap.set(r.semaine_offset, r)
-
     const offsets: number[] = []
     for (let i = -4; i <= 4; i++) offsets.push(i)
-
     return offsets.map((offset) => ({
       offset,
       pendant: skuMap.get(offset)?.pendant_promo ?? false,
-      skuVal: metrique === 'ca' ? skuMap.get(offset)?.ca ?? 0 : skuMap.get(offset)?.clients ?? 0,
-      famVal: metrique === 'ca' ? famMap.get(offset)?.ca ?? 0 : famMap.get(offset)?.clients ?? 0,
+      ca: skuMap.get(offset)?.ca ?? 0,
+      clients: skuMap.get(offset)?.clients ?? 0,
     }))
-  }, [semaineSku, semaineFamille, metrique])
+  }, [semaineSku])
 
-  const maxVal = Math.max(1, ...semaines.map((s) => Math.max(s.skuVal, showContribution ? s.famVal : 0)))
+  const maxCa = Math.max(1, ...semaines.map((s) => s.ca))
 
-  const prixAvantGlobal =
-    impactSku && impactSku.qte_baseline_total > 0
-      ? Math.round((impactSku.ca_baseline_total / impactSku.qte_baseline_total) * 100) / 100
-      : null
-  const prixPendantGlobal =
-    impactSku && impactSku.qte_pendant > 0
-      ? Math.round((impactSku.ca_pendant / impactSku.qte_pendant) * 100) / 100
-      : null
-  const baisseAbs =
-    prixAvantGlobal !== null && prixPendantGlobal !== null
-      ? Math.round((prixAvantGlobal - prixPendantGlobal) * 100) / 100
-      : null
-  const baissePct =
-    baisseAbs !== null && prixAvantGlobal !== null && prixAvantGlobal > 0
-      ? Math.round((baisseAbs / prixAvantGlobal) * 1000) / 10
-      : null
-
-  // Ventes hors prix promo, uniquement pour les clients dans la bonne cible
   const horsPrixCibleOk = useMemo(() => {
     const cibles = meta?.cible || []
     return horsPrix.filter((r) => r.cible_client && cibles.includes(r.cible_client))
@@ -334,6 +313,31 @@ export default function PromoDetailPage({ params }: { params: Promise<{ numero: 
     setHorsPrixOuvert(true)
     setCategorie('ventes')
   }
+
+  const copierLienFormulaire = async () => {
+    try {
+      const url = window.location.origin + '/promo/nouvelle'
+      await navigator.clipboard.writeText(url)
+      setLienCopie(true)
+      setTimeout(() => setLienCopie(false), 2000)
+    } catch {
+      setErreur('Impossible de copier le lien automatiquement')
+    }
+  }
+
+  const statutPeriode = useMemo(() => {
+    if (!meta) return null
+    const aujourdhui = new Date()
+    aujourdhui.setHours(0, 0, 0, 0)
+    const fin = new Date(meta.date_fin)
+    return aujourdhui > fin ? 'Termine' : 'En cours'
+  }, [meta])
+
+  const nbSemainesPromo = useMemo(() => {
+    if (!meta) return 1
+    const jours = (new Date(meta.date_fin).getTime() - new Date(meta.date_debut).getTime()) / 86400000 + 1
+    return Math.max(1, Math.round(jours / 7))
+  }, [meta])
 
   if (loading) {
     return (
@@ -354,53 +358,67 @@ export default function PromoDetailPage({ params }: { params: Promise<{ numero: 
   return (
     <div className="min-h-screen bg-[#F5F6F8]">
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-      <style>{`
-        * { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
-        @keyframes pulseBorder {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(21,128,61,0.45); }
-          50% { box-shadow: 0 0 0 5px rgba(21,128,61,0); }
-        }
-        .contrib-active {
-          animation: pulseBorder 1.6s ease-in-out infinite;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .contrib-active { animation: none; }
-        }
-      `}</style>
+      <style>{`* { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }`}</style>
 
-      {/* En-tete visuel avec chips */}
-      <header className="bg-[#0B1220] px-6 py-6 sm:px-10">
-        <div className="mx-auto max-w-6xl">
-          <Link href="/dashboard" className="text-xs text-white/50 hover:text-white/80">
-            ← Retour au dashboard
-          </Link>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="rounded-lg bg-[#0057A8] px-3 py-1.5 text-sm font-bold text-white">{meta.numero}</span>
-            <span className="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold text-white">{meta.marque}</span>
-            {meta.sous_familles?.map((sf) => (
-              <span key={sf} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white/80">
-                {sf}
-              </span>
-            ))}
-            <span className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white/80">
-              {formatDate(meta.date_debut)} → {formatDate(meta.date_fin)}
+      {/* Bloc 2 : barre du haut */}
+      <div className="border-b border-gray-200 bg-white px-6 py-3 sm:px-10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
+          <div className="text-xs text-gray-500">
+            <Link href="/dashboard" className="hover:text-[#0057A8]">
+              Dashboard
+            </Link>
+            <span className="mx-1.5">&rsaquo;</span>
+            <span className="font-medium text-gray-900">{meta.numero}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-400">
+              {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
             </span>
-            {meta.cible?.map((c) => (
-              <span
-                key={c}
-                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white"
-                style={{ background: '#0067B8' }}
-              >
-                Cible {c}
+            <button
+              onClick={copierLienFormulaire}
+              className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:border-gray-300"
+            >
+              <span className="h-3.5 w-3.5">
+                <IconCopy />
               </span>
-            ))}
+              {lienCopie ? 'Lien copie' : 'Copier lien du formulaire'}
+            </button>
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="mx-auto max-w-6xl px-6 py-8 sm:px-10">
+      <main className="mx-auto max-w-6xl px-6 py-6 sm:px-10">
+        {/* Bloc 3 : bandeau titre */}
+        <div className="mb-6 flex flex-col justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:flex-row sm:items-start">
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">
+              {meta.marque}
+              {meta.categorie && <span className="text-gray-400"> &middot; {meta.categorie}</span>}
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
+              {formatDate(meta.date_debut)} - {formatDate(meta.date_fin)}
+              {meta.cible?.length > 0 && <> &middot; cible {meta.cible.join(', ')}</>}
+            </p>
+          </div>
+          <div className="text-left sm:text-right">
+            <span
+              className="rounded-full px-3 py-1 text-xs font-semibold"
+              style={
+                statutPeriode === 'En cours'
+                  ? { background: '#DCFCE7', color: '#166534' }
+                  : { background: '#F3F4F6', color: '#374151' }
+              }
+            >
+              {statutPeriode}
+            </span>
+            {derniereMaj && (
+              <p className="mt-1.5 text-[11px] text-gray-400">Maj {formatDateHeure(derniereMaj)}</p>
+            )}
+          </div>
+        </div>
+
         <div className="flex flex-col gap-6 sm:flex-row">
-          {/* Sidebar interne : categories de donnees */}
+          {/* Bloc 1 : sidebar interne */}
           <nav className="flex gap-2 overflow-x-auto sm:w-52 sm:flex-shrink-0 sm:flex-col sm:overflow-visible">
             {NAV_ITEMS.map((item) => {
               const actif = categorie === item.id
@@ -426,257 +444,208 @@ export default function PromoDetailPage({ params }: { params: Promise<{ numero: 
             })}
           </nav>
 
-          {/* Contenu de la categorie selectionnee */}
           <div className="min-w-0 flex-1">
             {categorie === 'ventes' && (
               <div className="flex flex-col gap-6">
-                {/* KPIs colores */}
+                {/* Bloc 4 : 4 KPI cards */}
                 {impactSku && (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-                    <KpiCard label="CA avant (4 sem.)" value={formatMAD(impactSku.ca_baseline_total)} accent="#0057A8" icon={<IconCoins />} />
-                    <KpiCard label="CA pendant" value={formatMAD(impactSku.ca_pendant)} accent="#15803D" icon={<IconCoins />} />
-                    <KpiCard
-                      label="Uplift"
-                      value={<UpliftBadge avant={impactSku.ca_baseline_total} pendant={impactSku.ca_pendant} />}
-                      accent="#7C3AED"
-                      icon={<IconTrending />}
-                    />
-                    <KpiCard
-                      label="Prix unitaire moyen"
-                      value={prixPendantGlobal !== null ? prixPendantGlobal.toLocaleString('fr-FR') : '-'}
-                      accent="#0891B2"
-                      icon={<IconCoins />}
-                      sub={`avant : ${prixAvantGlobal !== null ? prixAvantGlobal.toLocaleString('fr-FR') : '-'}`}
-                    />
-                    <KpiCard
-                      label="Baisse de prix"
-                      value={baisseAbs !== null ? baisseAbs.toLocaleString('fr-FR') : '-'}
-                      accent={baisseAbs !== null && baisseAbs > 0 ? '#15803D' : '#B91C1C'}
-                      icon={<IconTrending />}
-                      sub={baissePct !== null ? `${baissePct >= 0 ? '-' : '+'}${Math.abs(baissePct).toFixed(1)}%` : ''}
-                    />
-                    <KpiCard
-                      label="Clients avant → pendant"
-                      value={`${impactSku.clients_baseline} → ${impactSku.clients_pendant}`}
-                      accent="#EA580C"
-                      icon={<IconUsers />}
-                    />
-                    <KpiCard
-                      label="Qte avant → pendant"
-                      value={`${impactSku.qte_baseline_total} → ${impactSku.qte_pendant}`}
-                      accent="#64748B"
-                      icon={<IconBox />}
-                    />
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">CA SKUs promo</p>
+                      <div className="mt-2 flex items-baseline justify-between">
+                        <div>
+                          <p className="text-[10px] text-gray-400">avant</p>
+                          <p className="text-base font-semibold text-gray-700">{formatMAD(impactSku.ca_baseline_total / 4)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] text-gray-400">pendant</p>
+                          <p className="text-base font-semibold" style={{ color: '#15803D' }}>
+                            {formatMAD(impactSku.ca_pendant / nbSemainesPromo)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Clients SKUs promo</p>
+                      <div className="mt-2 flex items-baseline justify-between">
+                        <div>
+                          <p className="text-[10px] text-gray-400">avant</p>
+                          <p className="text-base font-semibold text-gray-700">{impactSku.clients_baseline}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] text-gray-400">pendant</p>
+                          <p className="text-base font-semibold" style={{ color: '#15803D' }}>
+                            {impactSku.clients_pendant}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Ventes hors prix</p>
+                      <p className="mt-2 text-2xl font-semibold" style={{ color: '#B91C1C' }}>
+                        {horsPrixCibleOk.length}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Contribution marque</p>
+                      {impactFamille ? (
+                        <div className="mt-2 flex items-baseline gap-2">
+                          <p className="text-base font-semibold text-gray-700">
+                            {formatCompact(impactFamille.ca_pendant_famille)}
+                          </p>
+                          <p className="text-[11px] text-gray-400">
+                            vs {formatCompact(impactFamille.ca_baseline_famille)}
+                          </p>
+                          <UpliftBadge avant={impactFamille.ca_baseline_famille} pendant={impactFamille.ca_pendant_famille} />
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-sm text-gray-300">-</p>
+                      )}
+                    </div>
                   </div>
                 )}
 
-                {/* Graphique */}
+                {/* Bloc 5 : repartition par cible */}
+                <div>
+                  <h2 className="mb-2 text-sm font-semibold text-gray-900">Repartition par cible</h2>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    {impactCible.map((c) => {
+                      const couleur = CIBLE_COLORS[c.cible] || '#64748B'
+                      const survolee = cibleSurvolee === c.cible
+                      return (
+                        <div
+                          key={c.cible}
+                          onMouseEnter={() => setCibleSurvolee(c.cible)}
+                          onMouseLeave={() => setCibleSurvolee(null)}
+                          className="cursor-pointer rounded-xl p-3.5 transition"
+                          style={{ background: couleur + '14' }}
+                        >
+                          <p className="text-xs font-semibold" style={{ color: couleur }}>
+                            {c.cible}
+                          </p>
+                          <p className="mt-1 text-lg font-semibold" style={{ color: couleur }}>
+                            {survolee ? `${c.clients_pendant} clients` : formatMAD(c.ca_pendant)}
+                          </p>
+                        </div>
+                      )
+                    })}
+                    {impactCible.length === 0 && (
+                      <p className="col-span-full text-xs text-gray-400">Aucune donnee de vente pour l instant.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bloc 6 : graphique de performance */}
                 <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h2 className="text-sm font-semibold text-gray-900">Evolution hebdomadaire</h2>
-                    <div className="flex items-center gap-2">
-                      <div className="flex rounded-full border border-gray-200 p-0.5">
-                        <button
-                          onClick={() => setMetrique('ca')}
-                          className={`rounded-full px-3 py-1 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-[#0067B8] ${
-                            metrique === 'ca' ? 'bg-gray-900 text-white' : 'text-gray-500'
-                          }`}
-                        >
-                          CA
-                        </button>
-                        <button
-                          onClick={() => setMetrique('clients')}
-                          className={`rounded-full px-3 py-1 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-[#0067B8] ${
-                            metrique === 'clients' ? 'bg-gray-900 text-white' : 'text-gray-500'
-                          }`}
-                        >
-                          CLT
-                        </button>
+                    <h2 className="text-sm font-semibold text-gray-900">Performance</h2>
+                    {impactSku && (
+                      <div className="flex gap-4 text-xs text-gray-500">
+                        <span>
+                          Total CA <span className="font-semibold text-gray-900">{formatMAD(impactSku.ca_pendant)}</span>
+                        </span>
+                        <span>
+                          Total CLT <span className="font-semibold text-gray-900">{impactSku.clients_pendant}</span>
+                        </span>
                       </div>
-                      <button
-                        onClick={() => setShowContribution((v) => !v)}
-                        className={`rounded-full border-2 px-3 py-1 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-[#0067B8] ${
-                          showContribution ? 'contrib-active border-[#15803D] text-[#15803D]' : 'border-gray-200 text-gray-500'
-                        }`}
-                      >
-                        Contribution marque
-                      </button>
-                    </div>
+                    )}
                   </div>
 
-                  <div className="mt-8 flex h-52 items-end gap-2 sm:gap-3">
+                  <div className="relative mt-8 flex h-44 items-end gap-2 sm:gap-3">
                     {semaines.map((s) => (
-                      <div key={s.offset} className="flex flex-1 flex-col items-center gap-1.5">
-                        <div className="flex h-40 w-full items-end justify-center gap-1">
-                          <div className="flex h-40 w-full flex-col items-end justify-end">
-                            {s.skuVal > 0 && (
-                              <span className="mb-1 self-center text-[10px] font-semibold text-gray-500">
-                                {metrique === 'ca' ? formatCompact(s.skuVal) : s.skuVal}
-                              </span>
-                            )}
-                            <div
-                              className="w-full rounded-t motion-safe:transition-all"
-                              style={{
-                                height: `${(s.skuVal / maxVal) * 100}%`,
-                                background: s.pendant ? '#0057A8' : '#CBD5E1',
-                                minHeight: s.skuVal > 0 ? 3 : 0,
-                              }}
-                            />
+                      <div
+                        key={s.offset}
+                        className="relative flex flex-1 flex-col items-center gap-1.5"
+                        onMouseEnter={() => setSurvolSemaine(s.offset)}
+                        onMouseLeave={() => setSurvolSemaine(null)}
+                      >
+                        {survolSemaine === s.offset && (
+                          <div className="absolute bottom-full z-10 mb-2 whitespace-nowrap rounded-lg border border-gray-100 bg-white px-3 py-2 text-[11px] shadow-md">
+                            <p className="font-semibold text-gray-900">{weekLabel(s.offset)}</p>
+                            <p className="text-gray-500">CA : {formatMAD(s.ca)}</p>
+                            <p className="text-gray-500">CLT : {s.clients}</p>
                           </div>
-                          {showContribution && (
-                            <div className="flex h-40 w-full flex-col items-end justify-end">
-                              {s.famVal > 0 && (
-                                <span className="mb-1 self-center text-[10px] font-semibold text-gray-500">
-                                  {metrique === 'ca' ? formatCompact(s.famVal) : s.famVal}
-                                </span>
-                              )}
-                              <div
-                                className="w-full rounded-t motion-safe:transition-all"
-                                style={{
-                                  height: `${(s.famVal / maxVal) * 100}%`,
-                                  background: s.pendant ? '#B45309' : '#F3D9B1',
-                                  minHeight: s.famVal > 0 ? 3 : 0,
-                                }}
-                              />
-                            </div>
-                          )}
+                        )}
+                        <div className="flex h-36 w-full cursor-pointer items-end justify-center">
+                          <div
+                            className="w-full rounded-t transition-opacity"
+                            style={{
+                              height: `${(s.ca / maxCa) * 100}%`,
+                              background: s.pendant ? '#0057A8' : '#CBD5E1',
+                              minHeight: s.ca > 0 ? 3 : 0,
+                              opacity: survolSemaine === null || survolSemaine === s.offset ? 1 : 0.5,
+                            }}
+                          />
                         </div>
                         <p className="text-[10px] text-gray-400" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                          {s.offset === 0 ? 'P' : s.offset > 0 ? `P+${s.offset}` : `S${s.offset}`}
+                          {weekLabel(s.offset)}
                         </p>
                       </div>
                     ))}
                   </div>
-
-                  <div className="mt-4 flex flex-wrap gap-4 text-[11px] text-gray-500">
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-sm" style={{ background: '#0057A8' }} /> SKUs de la promo (pendant)
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-sm" style={{ background: '#CBD5E1' }} /> SKUs de la promo (hors periode)
-                    </span>
-                    {showContribution && (
-                      <span className="flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-sm" style={{ background: '#B45309' }} /> Marque entiere
-                      </span>
-                    )}
-                  </div>
-
-                  {impactFamille && showContribution && (
-                    <div className="mt-4 flex flex-wrap gap-6 border-t border-gray-100 pt-4">
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-gray-400">Impact marque · CA</p>
-                        <div className="mt-1 flex items-center gap-2">
-                          <p className="text-sm text-gray-700" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                            {formatMAD(impactFamille.ca_baseline_famille)} → {formatMAD(impactFamille.ca_pendant_famille)}
-                          </p>
-                          <UpliftBadge avant={impactFamille.ca_baseline_famille} pendant={impactFamille.ca_pendant_famille} />
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-gray-400">Impact marque · Clients</p>
-                        <div className="mt-1 flex items-center gap-2">
-                          <p className="text-sm text-gray-700" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                            {impactFamille.clients_baseline_famille} → {impactFamille.clients_pendant_famille}
-                          </p>
-                          <UpliftBadge
-                            avant={impactFamille.clients_baseline_famille}
-                            pendant={impactFamille.clients_pendant_famille}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                {/* Tableau detail SKUs */}
+                {/* Bloc 7 : liste des SKUs */}
                 <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-gray-900">Detail par SKU</h2>
+                    <h2 className="text-sm font-semibold text-gray-900">SKUs de la promo</h2>
                     {refFiltre && (
                       <button onClick={() => setRefFiltre(null)} className="text-xs text-[#0057A8] hover:underline">
                         Retirer le filtre ({refFiltre})
                       </button>
                     )}
                   </div>
-
-                  <div className="mt-4 overflow-x-auto rounded-xl border border-gray-100">
+                  <div className="mt-4 max-h-72 overflow-y-auto overflow-x-auto rounded-xl border border-gray-100">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-gray-50 uppercase text-gray-400">
+                      <thead className="sticky top-0 bg-gray-50 uppercase text-gray-400">
                         <tr>
                           <th className="px-3 py-2.5">Ref</th>
-                          <th className="px-3 py-2.5 text-right">Prix avant</th>
-                          <th className="px-3 py-2.5 text-right">Prix pendant</th>
-                          <th className="px-3 py-2.5 text-center">Hors prix</th>
+                          <th className="px-3 py-2.5 text-right">Prix promo</th>
+                          <th className="px-3 py-2.5 text-right">Ventes</th>
                           <th className="px-3 py-2.5 text-right">CA avant</th>
                           <th className="px-3 py-2.5 text-right">CA pendant</th>
                           <th className="px-3 py-2.5 text-right">CLT avant</th>
                           <th className="px-3 py-2.5 text-right">CLT pendant</th>
-                          <th className="px-3 py-2.5 text-right">Impact marque CA</th>
-                          <th className="px-3 py-2.5 text-right">Impact marque CLT</th>
+                          <th className="px-3 py-2.5 text-center">Hors prix</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {skuTable.map((r) => {
-                          const aPrixCdp = r.prix_promo !== null && r.prix_promo !== undefined
-                          const prixAvant = aPrixCdp
-                            ? r.prix_catalogue
-                            : r.qte_avant > 0
-                            ? Math.round((r.ca_avant / r.qte_avant) * 100) / 100
-                            : null
-                          const prixPendant = aPrixCdp
-                            ? r.prix_promo
-                            : r.qte_pendant > 0
-                            ? Math.round((r.ca_pendant / r.qte_pendant) * 100) / 100
-                            : null
-                          return (
-                            <tr key={r.ref} className="border-t border-gray-100 text-gray-700">
-                              <td className="px-3 py-2 font-medium">{r.ref}</td>
-                              <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                                {prixAvant ?? '-'}
-                              </td>
-                              <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                                {prixPendant ?? '-'}
-                                {!aPrixCdp && prixPendant !== null && (
-                                  <span className="ml-1 text-[10px] text-gray-300" title="Prix calcule (montant/quantite), aucun prix promo saisi par le CDP">
-                                    calc.
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-3 py-2 text-center">
-                                {r.nb_hors_prix > 0 ? (
-                                  <button
-                                    onClick={() => ouvrirHorsPrix(r.ref)}
-                                    className="rounded-full px-2 py-0.5 text-[11px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-[#0067B8]"
-                                    style={{ background: '#B91C1C' }}
-                                  >
-                                    {r.nb_hors_prix}
-                                  </button>
-                                ) : (
-                                  <span className="text-gray-300">{aPrixCdp ? '0' : '-'}</span>
-                                )}
-                              </td>
-                              <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                                {formatMAD(r.ca_avant)}
-                              </td>
-                              <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                                {formatMAD(r.ca_pendant)}
-                              </td>
-                              <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                                {r.clients_avant}
-                              </td>
-                              <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                                {r.clients_pendant}
-                              </td>
-                              <td className="px-3 py-2 text-right">
-                                <UpliftBadge avant={r.ca_baseline_famille} pendant={r.ca_pendant_famille} />
-                              </td>
-                              <td className="px-3 py-2 text-right">
-                                <UpliftBadge avant={r.clients_baseline_famille} pendant={r.clients_pendant_famille} />
-                              </td>
-                            </tr>
-                          )
-                        })}
+                        {skuTable.map((r) => (
+                          <tr key={r.ref} className="border-t border-gray-100 text-gray-700">
+                            <td className="px-3 py-2 font-medium">{r.ref}</td>
+                            <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                              {r.prix_promo ?? '-'}
+                            </td>
+                            <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                              {r.qte_pendant}
+                            </td>
+                            <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                              {formatMAD(r.ca_avant)}
+                            </td>
+                            <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                              {formatMAD(r.ca_pendant)}
+                            </td>
+                            <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                              {r.clients_avant}
+                            </td>
+                            <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                              {r.clients_pendant}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {r.nb_hors_prix > 0 ? (
+                                <button
+                                  onClick={() => ouvrirHorsPrix(r.ref)}
+                                  className="rounded-full px-2 py-0.5 text-[11px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-[#0067B8]"
+                                  style={{ background: '#B91C1C' }}
+                                >
+                                  {r.nb_hors_prix}
+                                </button>
+                              ) : (
+                                <span className="text-gray-300">0</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                     {skuTable.length === 0 && (
@@ -685,14 +654,51 @@ export default function PromoDetailPage({ params }: { params: Promise<{ numero: 
                   </div>
                 </div>
 
-                {/* Ventes hors prix promo : accordion ferme par defaut */}
+                {/* Bloc 8 : equipe promo */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">Equipe</p>
+                    <div className="flex items-center gap-2 py-1 text-sm text-gray-700">
+                      <span className="h-4 w-4 text-gray-400">
+                        <IconUser />
+                      </span>
+                      CDP : {equipe?.cdp || '-'}
+                    </div>
+                    <div className="flex items-center gap-2 py-1 text-sm text-gray-700">
+                      <span className="h-4 w-4 text-gray-400">
+                        <IconPalette />
+                      </span>
+                      Infographiste : {equipe?.assigne_a_nom || '-'}
+                    </div>
+                    <div className="flex items-center gap-2 py-1 text-sm text-gray-300">
+                      <span className="h-4 w-4 text-gray-300">
+                        <IconSend />
+                      </span>
+                      Envoi NL : {equipe?.envoi_nl || '-'}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">Statut periode</p>
+                    <p
+                      className="text-xl font-semibold"
+                      style={{ color: statutPeriode === 'En cours' ? '#15803D' : '#374151' }}
+                    >
+                      {statutPeriode}
+                    </p>
+                    <p className="mt-0.5 text-xs text-gray-400">
+                      du {formatDate(meta.date_debut)} au {formatDate(meta.date_fin)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Bloc 9 : accordion ventes hors prix */}
                 <div className="rounded-2xl border border-gray-100 bg-white shadow-sm">
                   <button
                     onClick={() => setHorsPrixOuvert((v) => !v)}
                     className="flex w-full items-center justify-between px-6 py-4 outline-none focus-visible:ring-2 focus-visible:ring-[#0067B8] focus-visible:ring-inset"
                   >
                     <span className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                      Ventes hors prix promo (cible correcte){refFiltre ? ` · ${refFiltre}` : ''}
+                      Ventes hors prix promo{refFiltre ? ` · ${refFiltre}` : ''}
                       <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
                         {horsPrixCibleOk.length}
                       </span>
@@ -706,31 +712,27 @@ export default function PromoDetailPage({ params }: { params: Promise<{ numero: 
                         <table className="w-full text-left text-xs">
                           <thead className="bg-gray-50 uppercase text-gray-400">
                             <tr>
-                              <th className="px-3 py-2.5">Ref</th>
                               <th className="px-3 py-2.5">Client</th>
-                              <th className="px-3 py-2.5">Cible</th>
+                              <th className="px-3 py-2.5">Ref</th>
+                              <th className="px-3 py-2.5 text-right">Prix promo</th>
+                              <th className="px-3 py-2.5 text-right">Prix vendu</th>
                               <th className="px-3 py-2.5">Date</th>
-                              <th className="px-3 py-2.5 text-right">Prix attendu</th>
-                              <th className="px-3 py-2.5 text-right">Prix reel</th>
-                              <th className="px-3 py-2.5 text-right">Montant</th>
+                              <th className="px-3 py-2.5">Cible</th>
                             </tr>
                           </thead>
                           <tbody>
                             {horsPrixFiltre.slice(0, 100).map((r, i) => (
                               <tr key={i} className="border-t border-gray-100 text-gray-700">
-                                <td className="px-3 py-2">{r.ref}</td>
                                 <td className="px-3 py-2">{r.client_id}</td>
-                                <td className="px-3 py-2">{r.cible_client}</td>
-                                <td className="px-3 py-2">{formatDate(r.date_vente)}</td>
+                                <td className="px-3 py-2">{r.ref}</td>
                                 <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
                                   {r.prix_attendu}
                                 </td>
                                 <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
                                   {r.prix_reel ?? '-'}
                                 </td>
-                                <td className="px-3 py-2 text-right" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                                  {r.montant_ca.toLocaleString('fr-FR')}
-                                </td>
+                                <td className="px-3 py-2">{formatDate(r.date_vente)}</td>
+                                <td className="px-3 py-2">{r.cible_client}</td>
                               </tr>
                             ))}
                           </tbody>
