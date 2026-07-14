@@ -125,6 +125,22 @@ function UpliftBadge({ avant, pendant }: { avant: number; pendant: number }) {
 function weekLabel(offset: number) {
   return offset < 0 ? `W${offset}` : `PW${offset + 1}`
 }
+function getISOWeek(d: Date) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+  const dayNum = (date.getUTCDay() + 6) % 7
+  date.setUTCDate(date.getUTCDate() - dayNum + 3)
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4))
+  const diff = date.getTime() - firstThursday.getTime()
+  return 1 + Math.round(diff / (7 * 24 * 3600 * 1000))
+}
+function getSemaineInfo(dateDebut: string, offset: number) {
+  const debut = new Date(dateDebut)
+  const start = new Date(debut)
+  start.setDate(start.getDate() + offset * 7)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 6)
+  return { start, end, numero: getISOWeek(start) }
+}
 
 const IconCoins = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -333,12 +349,6 @@ export default function PromoDetailPage({ params }: { params: Promise<{ numero: 
     return aujourdhui > fin ? 'Termine' : 'En cours'
   }, [meta])
 
-  const nbSemainesPromo = useMemo(() => {
-    if (!meta) return 1
-    const jours = (new Date(meta.date_fin).getTime() - new Date(meta.date_debut).getTime()) / 86400000 + 1
-    return Math.max(1, Math.round(jours / 7))
-  }, [meta])
-
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F5F6F8]">
@@ -455,12 +465,12 @@ export default function PromoDetailPage({ params }: { params: Promise<{ numero: 
                       <div className="mt-2 flex items-baseline justify-between">
                         <div>
                           <p className="text-[10px] text-gray-400">avant</p>
-                          <p className="text-base font-semibold text-gray-700">{formatMAD(impactSku.ca_baseline_total / 4)}</p>
+                          <p className="text-base font-semibold text-gray-700">{formatMAD(impactSku.ca_baseline_total)}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] text-gray-400">pendant</p>
                           <p className="text-base font-semibold" style={{ color: '#15803D' }}>
-                            {formatMAD(impactSku.ca_pendant / nbSemainesPromo)}
+                            {formatMAD(impactSku.ca_pendant)}
                           </p>
                         </div>
                       </div>
@@ -561,7 +571,11 @@ export default function PromoDetailPage({ params }: { params: Promise<{ numero: 
                       >
                         {survolSemaine === s.offset && (
                           <div className="absolute bottom-full z-10 mb-2 whitespace-nowrap rounded-lg border border-gray-100 bg-white px-3 py-2 text-[11px] shadow-md">
-                            <p className="font-semibold text-gray-900">{weekLabel(s.offset)}</p>
+                            <p className="font-semibold text-gray-900">
+                              Semaine {getSemaineInfo(meta.date_debut, s.offset).numero} du{' '}
+                              {formatDate(getSemaineInfo(meta.date_debut, s.offset).start.toISOString())} au{' '}
+                              {formatDate(getSemaineInfo(meta.date_debut, s.offset).end.toISOString())}
+                            </p>
                             <p className="text-gray-500">CA : {formatMAD(s.ca)}</p>
                             <p className="text-gray-500">CLT : {s.clients}</p>
                           </div>
